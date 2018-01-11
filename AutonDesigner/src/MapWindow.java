@@ -1,4 +1,7 @@
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
@@ -6,22 +9,45 @@ import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
 
 public class MapWindow implements WindowListener {
 	JDialog dialog;
-	JLabel label;
+	JPanel panel;
+	JLabel imgLabel;
 	BufferedImage img;
 	Graphics2D g2d;
-	public MapWindow(int width,int height) {
-		img = new BufferedImage(width,height,BufferedImage.TYPE_INT_ARGB);
-		g2d = img.createGraphics();
-		label = new JLabel(new ImageIcon(img));
-		dialog = new JDialog();
-		dialog.add(label);
-		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+	JScrollPane scrollPane;
+	JTextArea text;
+	GridBagLayout layout;
+	public MapWindow() {
+		int width=888;
+		int height=360;
+		dialog = new JDialog();//main window
+		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);//main window close instructions
+		layout = new GridBagLayout();//layout, sets up where window components are
+		panel = new JPanel();//panel, makes stuff work with layout
+		panel.setLayout(layout);
+		img = new BufferedImage(width,height,BufferedImage.TYPE_INT_ARGB);//image drawn to for map
+		g2d = img.createGraphics();//graphics interface for map
+		imgLabel = new JLabel(new ImageIcon(img));//contains map, used to more easily get mouse coordinates
+		text = new JTextArea();//text area containing instructions
+		text.setEditable(true);
+		text.setMinimumSize(new Dimension(50,width));
+		scrollPane = new JScrollPane(text);//handles text area scrolling
+		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		panel.add(imgLabel);
+		panel.add(text);
+		dialog.add(panel);
 		dialog.pack();
 		dialog.addWindowListener(this);
 		dialog.setVisible(true);
+		g2d.setPaint(Color.BLACK);
+		g2d.fillRect(0, 0, img.getWidth(), img.getHeight());
 	}
 	@Override
 	public void windowActivated(WindowEvent arg0) {
