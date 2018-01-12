@@ -44,43 +44,28 @@ public class MapWindow implements WindowListener {
 		layout = new BorderLayout();// helps set where window components are
 		dialog.setLayout(layout);
 		// setup map view
-		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);// image
-																			// drawn
-																			// to
-																			// for
-																			// map
+		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);// image drawn to for map
 		g2d = img.createGraphics();// graphics interface for map
-		imgLabel = new JLabel(new ImageIcon(img));// contains map, used to more
-													// easily get mouse
-													// coordinates
+		imgLabel = new JLabel(new ImageIcon(img));// contains map, used to more easily get mouse coordinates
 		// setup instruction edit area
-		instructionText = new JTextArea(1, 1);// text area containing
-												// instructions
+		instructionText = new JTextArea(1, 1);// text area containing instructions
 		instructionText.setEditable(true);
-		instructionText.setMinimumSize(new Dimension(100, height));// configure
-																	// size and
-																	// scaling
-																	// for text
-																	// area
+		instructionText.setMinimumSize(new Dimension(100, height));// configure size and scaling for text area
 		instructionText.setPreferredSize(new Dimension(400, height));
 		instructionText.setMaximumSize(new Dimension(9999, height));
 		instructionText.setBackground(Color.LIGHT_GRAY);
-		instructionScrollPane = new JScrollPane(instructionText);// handles text
-																	// area
-																	// scrolling
+		instructionScrollPane = new JScrollPane(instructionText);// handles text area scrolling
 		instructionScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		instructionScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 		// setup error/warning log
 		logText = new JTextArea(1, 1);// text area containing instructions
 		// logText.setEditable(false);
-		// logText.setMinimumSize(new Dimension(width,25));//configure size and
+		// logT	ext.setMinimumSize(new Dimension(width,25));//configure size and
 		// scaling for text area
 		// logText.setPreferredSize(new Dimension(width,100));
 		// logText.setMaximumSize(new Dimension(999,999));
 		logScrollPane = new JScrollPane();// handles text area scrolling
-		logScrollPane.setMinimumSize(new Dimension(width, 25));// configure size
-																// and scaling
-																// for text area
+		logScrollPane.setMinimumSize(new Dimension(width, 25));// configure size and scaling for text area
 		logScrollPane.setPreferredSize(new Dimension(width, 100));
 		logScrollPane.setMaximumSize(new Dimension(999, 999));
 		logScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
