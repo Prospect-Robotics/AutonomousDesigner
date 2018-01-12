@@ -11,5 +11,6 @@ public class MapDrawer {
 		for(Shape s:objects){
 			g2d.draw(s);
 		}
+		MapWindow.dialog.repaint();
 	}
 }

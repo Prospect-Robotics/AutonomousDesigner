@@ -29,6 +29,7 @@ public class MapReader {
 				path.closePath();
 				shapes.add(path);
 			}
+			in.close();
 		} catch (FileNotFoundException e) {
 			System.err.println("FILE NOT FOUND");
 		}

@@ -2,9 +2,9 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
-import java.awt.GridBagLayout;
-import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
@@ -12,29 +12,36 @@ import java.io.File;
 import java.util.ArrayList;
 
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import net.java.games.input.*;
 
-public class MapWindow implements WindowListener {
-	JDialog dialog;
+public class MapWindow implements WindowListener, ActionListener {
+	static JDialog dialog;
 	JLabel imgLabel;
 	BufferedImage img;
 	Graphics2D g2d;
 	JScrollPane instructionScrollPane;
 	JTextArea instructionText;
-	static JScrollPane logScrollPane;
-	static JTextArea logText;
 	BorderLayout layout;
-	static JLabel logScrollHelper;
-	ArrayList<Shape> mapShapes = MapReader.fromfile(new File("map.txt"));
+	JFileChooser fileChooser;
+	JPanel buttonsPanel;
+	ArrayList<Shape> mapShapes;// = MapReader.fromfile(new File("map.txt"));
+
+	private enum Actions {
+		LOAD_MAP, LOAD_INSTRUCTIONS, SAVE_INSTRUCTIONS
+	}
 
 	public MapWindow() {
 		System.out.println("There will be a few errors from jinput but just ignore them because it still works");
@@ -54,54 +61,53 @@ public class MapWindow implements WindowListener {
 		instructionText.setEditable(true);
 		instructionText.setMinimumSize(new Dimension(100, height));// configure size and scaling for text area
 		instructionText.setPreferredSize(new Dimension(400, height));
-		instructionText.setMaximumSize(new Dimension(9999, height));
+		instructionText.setMaximumSize(new Dimension(401, height + 1));
 		instructionText.setBackground(Color.LIGHT_GRAY);
 		instructionScrollPane = new JScrollPane(instructionText);// handles text area scrolling
 		instructionScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		instructionScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		// setup error/warning log
-		logText = new JTextArea(1, 1);// text area containing instructions
-		// logText.setEditable(false);
-		// logT ext.setMinimumSize(new Dimension(width,25));//configure size and
-		// scaling for text area
-		// logText.setPreferredSize(new Dimension(width,100));
-		// logText.setMaximumSize(new Dimension(999,999));
-		logScrollPane = new JScrollPane();// handles text area scrolling
-		logScrollPane.setMinimumSize(new Dimension(width, 25));// configure size and scaling for text area
-		logScrollPane.setPreferredSize(new Dimension(width, 100));
-		logScrollPane.setMaximumSize(new Dimension(999, 999));
-		logScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		logScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-		logScrollPane.setViewportView(logText);
-		//janky stuff so the log can scroll to bottom
-		logScrollHelper = new JLabel();
-		logScrollHelper.setMinimumSize(new Dimension(25,25));
-		logScrollHelper.setPreferredSize(new Dimension(50,50));
-		logScrollHelper.setMaximumSize(new Dimension(100,100));
-		logScrollHelper.setBackground(Color.green);
-		logScrollPane.add(logScrollHelper);
+		// buttons
+		buttonsPanel = new JPanel();
+		JButton mapLoadButton = new JButton("Load Map");
+		mapLoadButton.setActionCommand(Actions.LOAD_MAP.name());
+		mapLoadButton.setToolTipText("Load map file");
+		mapLoadButton.addActionListener(this);
+		JButton instructionsSaveButton = new JButton("Save Instructions");
+		instructionsSaveButton.setActionCommand(Actions.SAVE_INSTRUCTIONS.name());
+		instructionsSaveButton.setToolTipText("Save robot movement instructions");
+		instructionsSaveButton.addActionListener(this);
+		buttonsPanel.add(mapLoadButton);
+		buttonsPanel.add(instructionsSaveButton);
+		// janky stuff so the log can scroll to bottom
 		// add elements to window and finalize setup
 		dialog.add(imgLabel, BorderLayout.CENTER);
 		dialog.add(instructionText, BorderLayout.LINE_END);
-		dialog.add(logScrollPane, BorderLayout.PAGE_END);
+		dialog.add(buttonsPanel, BorderLayout.PAGE_END);
 		dialog.pack();
 		dialog.addWindowListener(this);
 		dialog.setVisible(true);
 		g2d.setPaint(Color.black);
 		g2d.fillRect(0, 0, img.getWidth(), img.getHeight());
-		MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, 1);
+		// browse for file and draw
+		fileChooser = new JFileChooser();
+		FileNameExtensionFilter fileTypeFilter = new FileNameExtensionFilter("text files", "txt");
+		fileChooser.setFileFilter(fileTypeFilter);
+		// File mapFile;
+		// int returnVal = fileChooser.showOpenDialog(mapFile);
 		// Setup Joysticks
 		ControllerEnvironment ce = ControllerEnvironment.getDefaultEnvironment();
 		Controller joystick = null;
+		System.out.println(ce.getControllers().length + " devices found");
 		for (int i = 0; i < ce.getControllers().length; i++) {
-			log(ce.getControllers()[i].getName());
+			System.out.println(ce.getControllers()[i].getType().toString());
+			System.out.println("-" + ce.getControllers()[i].getName());
 			if (ce.getControllers()[i].getType().toString() == "Stick") {
 				joystick = ce.getControllers()[i];
-				log("Found Joystick");
+				System.out.println("Found Joystick");
 			}
 		}
 		//
-		while (joystick!=null) {
+		while (joystick != null) {
 			if (joystick != null) {
 				EventQueue queue = joystick.getEventQueue();
 				Event event = new Event();
@@ -156,9 +162,31 @@ public class MapWindow implements WindowListener {
 
 	}
 
-	public static void log(String text) {
-		logText.append("\n"+text);
-		logScrollPane.scrollRectToVisible(logScrollHelper.getBounds());
+	public void mapFileOpen() {
+		int returnVal = fileChooser.showOpenDialog(dialog);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			System.out.println(fileChooser.getSelectedFile().getPath());
+			mapShapes = MapReader.fromfile(fileChooser.getSelectedFile());
+			MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, 1);
+		}
+	}
+	
+	public void saveInstructions(){
+		//File generatedFile = new File();
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent arg0) {
+		if (arg0.getActionCommand() == Actions.LOAD_MAP.name()) {
+			mapFileOpen();
+		} else if (arg0.getActionCommand() == Actions.LOAD_INSTRUCTIONS.name()) {
+
+		} else if (arg0.getActionCommand() == Actions.SAVE_INSTRUCTIONS.name()) {
+
+		}
+		else{
+			System.err.println("Unknown action has been preformed");
+		}
 	}
 
 }
