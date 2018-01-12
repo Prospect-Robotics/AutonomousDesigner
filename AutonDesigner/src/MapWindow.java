@@ -3,6 +3,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
@@ -29,9 +30,10 @@ public class MapWindow implements WindowListener {
 	Graphics2D g2d;
 	JScrollPane instructionScrollPane;
 	JTextArea instructionText;
-	JScrollPane logScrollPane;
+	static JScrollPane logScrollPane;
 	static JTextArea logText;
 	BorderLayout layout;
+	static JLabel logScrollHelper;
 	ArrayList<Shape> mapShapes = MapReader.fromfile(new File("map.txt"));
 
 	public MapWindow() {
@@ -60,7 +62,7 @@ public class MapWindow implements WindowListener {
 		// setup error/warning log
 		logText = new JTextArea(1, 1);// text area containing instructions
 		// logText.setEditable(false);
-		// logT	ext.setMinimumSize(new Dimension(width,25));//configure size and
+		// logT ext.setMinimumSize(new Dimension(width,25));//configure size and
 		// scaling for text area
 		// logText.setPreferredSize(new Dimension(width,100));
 		// logText.setMaximumSize(new Dimension(999,999));
@@ -71,6 +73,13 @@ public class MapWindow implements WindowListener {
 		logScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		logScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		logScrollPane.setViewportView(logText);
+		//janky stuff so the log can scroll to bottom
+		logScrollHelper = new JLabel();
+		logScrollHelper.setMinimumSize(new Dimension(25,25));
+		logScrollHelper.setPreferredSize(new Dimension(50,50));
+		logScrollHelper.setMaximumSize(new Dimension(100,100));
+		logScrollHelper.setBackground(Color.green);
+		logScrollPane.add(logScrollHelper);
 		// add elements to window and finalize setup
 		dialog.add(imgLabel, BorderLayout.CENTER);
 		dialog.add(instructionText, BorderLayout.LINE_END);
@@ -85,12 +94,14 @@ public class MapWindow implements WindowListener {
 		ControllerEnvironment ce = ControllerEnvironment.getDefaultEnvironment();
 		Controller joystick = null;
 		for (int i = 0; i < ce.getControllers().length; i++) {
+			log(ce.getControllers()[i].getName());
 			if (ce.getControllers()[i].getType().toString() == "Stick") {
 				joystick = ce.getControllers()[i];
+				log("Found Joystick");
 			}
 		}
 		//
-		while (true) {
+		while (joystick!=null) {
 			if (joystick != null) {
 				EventQueue queue = joystick.getEventQueue();
 				Event event = new Event();
@@ -146,7 +157,8 @@ public class MapWindow implements WindowListener {
 	}
 
 	public static void log(String text) {
-		logText.append(text + "\n");
+		logText.append("\n"+text);
+		logScrollPane.scrollRectToVisible(logScrollHelper.getBounds());
 	}
 
 }
