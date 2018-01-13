@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.swing.ImageIcon;
@@ -60,7 +61,10 @@ public class MapWindow implements WindowListener, ActionListener {
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					try {
 						FileReader reader = new FileReader(fileChooser.getSelectedFile());
+						instructionText.read(reader,null);
 					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				}
@@ -69,6 +73,7 @@ public class MapWindow implements WindowListener, ActionListener {
 		SAVE_INSTRUCTIONS("Save Instruction") {
 			@Override
 			public void onClick() {
+				
 			}
 		};
 		private String label;
@@ -196,7 +201,7 @@ public class MapWindow implements WindowListener, ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		if(Buttons.valueOf(arg0.getActionCommand())!=null){
+		if (Buttons.valueOf(arg0.getActionCommand()) != null) {
 			Buttons.valueOf(arg0.getActionCommand()).onClick();
 		}
 	}
