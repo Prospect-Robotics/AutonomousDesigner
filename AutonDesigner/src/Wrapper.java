@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class Wrapper {
 
 	public static void main(String[] args) {
-		MapWindow mapWindow = new MapWindow();
+		MapWindow.showUI();
 	}
 
 }
