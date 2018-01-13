@@ -9,7 +9,9 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-
+/*
+ * THIS ISN'T USED ANYMORE BUT I'M STILL GOING TO USE SOME OF THE CODE OUT OF IT SO JUST IGNORE THIS FOR NOW
+ */
 public class ModeSelect implements ActionListener {
 	public enum Modes {
 		MAP_VIEW {

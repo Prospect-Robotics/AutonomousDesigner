@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -25,6 +26,7 @@ import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import net.java.games.input.Component;
 import net.java.games.input.Controller;
 import net.java.games.input.ControllerEnvironment;
 import net.java.games.input.Event;
@@ -35,15 +37,17 @@ public class MapWindow implements WindowListener, ActionListener {
 	static JLabel imgLabel;
 	static BufferedImage img;
 	static Graphics2D g2d;
+	static JPanel instructionPanel;
 	static JScrollPane instructionScrollPane;
 	static JTextArea instructionText;
+	static JPanel instructionButtonsPanel;
 	static BorderLayout layout;
 	static JFileChooser openDialog;
 	static JPanel buttonsPanel;
-	static ArrayList<Shape> mapShapes;// = MapReader.fromfile(new File("map.txt"));
+	static ArrayList<Shape> mapShapes;
 
 	private enum Buttons {
-		LOAD_MAP("Load Map") {
+		LOAD_MAP("Load Map", buttonsPanel) {
 			@Override
 			public void onClick() {
 				int returnVal = openDialog.showOpenDialog(dialog);
@@ -54,14 +58,14 @@ public class MapWindow implements WindowListener, ActionListener {
 				}
 			}
 		},
-		LOAD_INSTRUCTIONS("Load Instruction") {
+		LOAD_INSTRUCTIONS("Load Instruction", buttonsPanel) {
 			@Override
 			public void onClick() {
 				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					try {
 						FileReader reader = new FileReader(openDialog.getSelectedFile());
-						instructionText.read(reader,null);
+						instructionText.read(reader, null);
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -70,29 +74,44 @@ public class MapWindow implements WindowListener, ActionListener {
 				}
 			}
 		},
-		SAVE_INSTRUCTIONS("Save Instruction") {
+		SAVE_INSTRUCTIONS("Save Instruction", buttonsPanel) {
 			@Override
 			public void onClick() {
 				JFileChooser chooser = new JFileChooser();
-				chooser.setPreferredSize(new Dimension(700,500));
+				chooser.setPreferredSize(new Dimension(700, 500));
 				FileNameExtensionFilter filter = new FileNameExtensionFilter("text files - PROGRAM WILL ADD .TXT FOR YOU DONT ADD IT", "txt");
 				chooser.setFileFilter(filter);
 				int retrival = chooser.showSaveDialog(dialog);
-			    if (retrival == JFileChooser.APPROVE_OPTION) {
-			        try {
-			            FileWriter fw = new FileWriter(chooser.getSelectedFile()+".txt");
-			            instructionText.write(fw);
-			        } catch (Exception ex) {
-			            ex.printStackTrace();
-			        }
-			    }
+				if (retrival == JFileChooser.APPROVE_OPTION) {
+					try {
+						FileWriter fw = new FileWriter(chooser.getSelectedFile() + ".txt");
+						instructionText.write(fw);
+					} catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				}
 			}
+		},
+		PLAYBACK_INSTRUCTIONS("Play", instructionButtonsPanel) {
+			@Override
+			public void onClick() {
+
+			}
+		},
+		OPEN_KEYMAPPER("Open Controlls Mapper", buttonsPanel) {
+
+			@Override
+			public void onClick() {
+				ControlsMapper.showUI();
+			}
+			
 		};
 		private String label;
-		private String hovertext = "";
+		private JPanel panel;
 
-		Buttons(String label) {
+		Buttons(String label, JPanel panel) {
 			this.label = label;
+			this.panel = panel;
 		}
 
 		public abstract void onClick();
@@ -113,15 +132,19 @@ public class MapWindow implements WindowListener, ActionListener {
 		g2d = img.createGraphics();// graphics interface for map
 		imgLabel = new JLabel(new ImageIcon(img));// contains map, used to more easily get mouse coordinates
 		// setup instruction edit area
+		instructionPanel = new JPanel();
+		instructionPanel.setLayout(new BoxLayout(instructionPanel, BoxLayout.Y_AXIS));
 		instructionText = new JTextArea(1, 1);// text area containing instructions
 		instructionText.setEditable(true);
-		instructionText.setMinimumSize(new Dimension(100, height));// configure size and scaling for text area
-		instructionText.setPreferredSize(new Dimension(400, height));
-		instructionText.setMaximumSize(new Dimension(401, height + 1));
 		instructionText.setBackground(Color.LIGHT_GRAY);
 		instructionScrollPane = new JScrollPane(instructionText);// handles text area scrolling
 		instructionScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		instructionScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		instructionPanel.add(instructionScrollPane);
+		instructionButtonsPanel = new JPanel();
+		instructionPanel.setPreferredSize(new Dimension(400, height));
+		instructionButtonsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+		instructionPanel.add(instructionButtonsPanel);
 		// buttons
 		buttonsPanel = new JPanel();
 		for (Buttons b : Buttons.values()) {
@@ -129,12 +152,12 @@ public class MapWindow implements WindowListener, ActionListener {
 			button.setText(b.label);
 			button.addActionListener(mapWindow);
 			button.setActionCommand(b.toString());
-			buttonsPanel.add(button);
+			b.panel.add(button);
 		}
-		// janky stuff so the log can scroll to bottom
+
 		// add elements to window and finalize setup
 		dialog.add(imgLabel, BorderLayout.CENTER);
-		dialog.add(instructionText, BorderLayout.LINE_END);
+		dialog.add(instructionPanel, BorderLayout.LINE_END);
 		dialog.add(buttonsPanel, BorderLayout.PAGE_END);
 		dialog.pack();
 		dialog.addWindowListener(mapWindow);
@@ -158,15 +181,31 @@ public class MapWindow implements WindowListener, ActionListener {
 			if (ce.getControllers()[i].getType().toString() == "Stick") {
 				joystick = ce.getControllers()[i];
 				System.out.println("Found Joystick");
+				for (Component c : joystick.getComponents()) {
+					System.out.println(" " + c);
+					System.out.println(c.getIdentifier());
+				}
 			}
 		}
 		//
 		while (joystick != null) {
 			if (joystick != null) {
+				joystick.poll();
 				EventQueue queue = joystick.getEventQueue();
 				Event event = new Event();
 				while (queue.getNextEvent(event)) {
-					System.out.println(event.getComponent());
+					switch (event.getComponent().getName()) {
+					default:
+						System.out.println(event.getComponent().getName());
+						System.out.println(event.getComponent().getPollData());
+						break;
+					case ("X Axis"):
+						break;
+					case ("Y Axis"):
+						break;
+					case ("Z Axis"):
+						break;
+					}
 				}
 			}
 			try {
@@ -183,7 +222,7 @@ public class MapWindow implements WindowListener, ActionListener {
 
 	@Override
 	public void windowClosed(WindowEvent arg0) {
-		// System.exit(0);
+		System.exit(0);
 	}
 
 	@Override
@@ -213,8 +252,10 @@ public class MapWindow implements WindowListener, ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		if (Buttons.valueOf(arg0.getActionCommand()) != null) {
+		try {
 			Buttons.valueOf(arg0.getActionCommand()).onClick();
+		} catch (java.lang.IllegalArgumentException e) {
+
 		}
 	}
 }
