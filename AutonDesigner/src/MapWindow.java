@@ -2,6 +2,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,6 +14,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.OptionalDouble;
+import java.util.Scanner;
+import java.util.function.Supplier;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -44,23 +48,30 @@ public class MapWindow implements WindowListener, ActionListener {
 	static BorderLayout layout;
 	static JFileChooser openDialog;
 	static JPanel buttonsPanel;
-	static ArrayList<Shape> mapShapes;
+	static ArrayList<Shape> mapShapes = new ArrayList<Shape>();
+	static FileNameExtensionFilter filterScript = new FileNameExtensionFilter("Autonomous Designer Script", "atds");
+	static FileNameExtensionFilter filterMap = new FileNameExtensionFilter("Autonomous Designer Map", "atdm");
+	static double robotAngle = 0;
+	static Point.Double robotPos = new Point.Double(100, 100);
+	static FakeBot robot = new FakeBot(robotPos, robotAngle, 30, 20);
 
 	private enum Buttons {
 		LOAD_MAP("Load Map", buttonsPanel) {
 			@Override
 			public void onClick() {
+				openDialog.setFileFilter(filterMap);
 				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					System.out.println(openDialog.getSelectedFile().getPath());
 					mapShapes = MapReader.fromfile(openDialog.getSelectedFile());
-					MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, 1);
+					MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
 				}
 			}
 		},
 		LOAD_INSTRUCTIONS("Load Instruction", buttonsPanel) {
 			@Override
 			public void onClick() {
+				openDialog.setFileFilter(filterScript);
 				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					try {
@@ -77,14 +88,11 @@ public class MapWindow implements WindowListener, ActionListener {
 		SAVE_INSTRUCTIONS("Save Instruction", buttonsPanel) {
 			@Override
 			public void onClick() {
-				JFileChooser chooser = new JFileChooser();
-				chooser.setPreferredSize(new Dimension(700, 500));
-				FileNameExtensionFilter filter = new FileNameExtensionFilter("text files - PROGRAM WILL ADD .TXT FOR YOU DONT ADD IT", "txt");
-				chooser.setFileFilter(filter);
-				int retrival = chooser.showSaveDialog(dialog);
+				openDialog.setFileFilter(filterScript);
+				int retrival = openDialog.showSaveDialog(dialog);
 				if (retrival == JFileChooser.APPROVE_OPTION) {
 					try {
-						FileWriter fw = new FileWriter(chooser.getSelectedFile() + ".txt");
+						FileWriter fw = new FileWriter(openDialog.getSelectedFile() + ".atdm");
 						instructionText.write(fw);
 					} catch (Exception ex) {
 						ex.printStackTrace();
@@ -95,7 +103,9 @@ public class MapWindow implements WindowListener, ActionListener {
 		PLAYBACK_INSTRUCTIONS("Play", instructionButtonsPanel) {
 			@Override
 			public void onClick() {
-
+				MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
+				MapDrawer.drawRobot(g2d, robot, Color.magenta, 1);
+				
 			}
 		},
 		OPEN_KEYMAPPER("Open Controlls Mapper", buttonsPanel) {
@@ -104,7 +114,7 @@ public class MapWindow implements WindowListener, ActionListener {
 			public void onClick() {
 				ControlsMapper.showUI();
 			}
-			
+
 		};
 		private String label;
 		private JPanel panel;
@@ -203,9 +213,13 @@ public class MapWindow implements WindowListener, ActionListener {
 						break;
 					case ("Y Axis"):
 						break;
-					case ("Z Axis"):
+					case ("Z Rotation"):
+						robotAngle += event.getValue();
+						System.out.println(robotAngle);
+						MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
 						break;
 					}
+
 				}
 			}
 			try {
@@ -214,6 +228,37 @@ public class MapWindow implements WindowListener, ActionListener {
 			}
 		}
 	}
+	
+	public void playInstructions(){
+		Supplier<Exception> noDefaultSpeed = () -> new Exception("You forgot to set the default speed!");
+		try (Scanner instructionsFeed = new Scanner(instructionText.getText())) {
+			OptionalDouble defaultSpeed = OptionalDouble.empty();
+			while (instructionsFeed.hasNext()) {
+				String command = instructionsFeed.next().toLowerCase();
+				switch (command) {
+				case "drive":
+					double distance = instructionsFeed.nextDouble();
+					double speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble() : defaultSpeed.orElseThrow(noDefaultSpeed);
+					break;
+				case "rotate":
+					double degrees = instructionsFeed.nextDouble();
+					speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble() : defaultSpeed.orElseThrow(noDefaultSpeed);
+					break;
+				case "cdrive":
+					degrees = instructionsFeed.nextDouble();
+					// double turnRadiusAsWheelSpeedRatio =
+					break;
+				case "cfg":
+					break;
+				}
+
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 
 	@Override
 	public void windowActivated(WindowEvent arg0) {
