@@ -8,9 +8,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -23,12 +23,12 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.border.Border;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import net.java.games.input.*;
+import net.java.games.input.Controller;
+import net.java.games.input.ControllerEnvironment;
+import net.java.games.input.Event;
+import net.java.games.input.EventQueue;
 
 public class MapWindow implements WindowListener, ActionListener {
 	static JDialog dialog;
@@ -38,7 +38,7 @@ public class MapWindow implements WindowListener, ActionListener {
 	static JScrollPane instructionScrollPane;
 	static JTextArea instructionText;
 	static BorderLayout layout;
-	static JFileChooser fileChooser;
+	static JFileChooser openDialog;
 	static JPanel buttonsPanel;
 	static ArrayList<Shape> mapShapes;// = MapReader.fromfile(new File("map.txt"));
 
@@ -46,10 +46,10 @@ public class MapWindow implements WindowListener, ActionListener {
 		LOAD_MAP("Load Map") {
 			@Override
 			public void onClick() {
-				int returnVal = fileChooser.showOpenDialog(dialog);
+				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					System.out.println(fileChooser.getSelectedFile().getPath());
-					mapShapes = MapReader.fromfile(fileChooser.getSelectedFile());
+					System.out.println(openDialog.getSelectedFile().getPath());
+					mapShapes = MapReader.fromfile(openDialog.getSelectedFile());
 					MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, 1);
 				}
 			}
@@ -57,10 +57,10 @@ public class MapWindow implements WindowListener, ActionListener {
 		LOAD_INSTRUCTIONS("Load Instruction") {
 			@Override
 			public void onClick() {
-				int returnVal = fileChooser.showOpenDialog(dialog);
+				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					try {
-						FileReader reader = new FileReader(fileChooser.getSelectedFile());
+						FileReader reader = new FileReader(openDialog.getSelectedFile());
 						instructionText.read(reader,null);
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
@@ -73,7 +73,19 @@ public class MapWindow implements WindowListener, ActionListener {
 		SAVE_INSTRUCTIONS("Save Instruction") {
 			@Override
 			public void onClick() {
-				
+				JFileChooser chooser = new JFileChooser();
+				chooser.setPreferredSize(new Dimension(700,500));
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("text files - PROGRAM WILL ADD .TXT FOR YOU DONT ADD IT", "txt");
+				chooser.setFileFilter(filter);
+				int retrival = chooser.showSaveDialog(dialog);
+			    if (retrival == JFileChooser.APPROVE_OPTION) {
+			        try {
+			            FileWriter fw = new FileWriter(chooser.getSelectedFile()+".txt");
+			            instructionText.write(fw);
+			        } catch (Exception ex) {
+			            ex.printStackTrace();
+			        }
+			    }
 			}
 		};
 		private String label;
@@ -130,10 +142,10 @@ public class MapWindow implements WindowListener, ActionListener {
 		g2d.setPaint(Color.black);
 		g2d.fillRect(0, 0, img.getWidth(), img.getHeight());
 		// File open/save dialog
-		fileChooser = new JFileChooser();
+		openDialog = new JFileChooser();
 		FileNameExtensionFilter fileTypeFilter = new FileNameExtensionFilter("text files", "txt");
-		fileChooser.setFileFilter(fileTypeFilter);
-		fileChooser.setPreferredSize(new Dimension(600, 500));
+		openDialog.setFileFilter(fileTypeFilter);
+		openDialog.setPreferredSize(new Dimension(600, 500));
 		// File mapFile;
 		// int returnVal = fileChooser.showOpenDialog(mapFile);
 		// Setup Joysticks
