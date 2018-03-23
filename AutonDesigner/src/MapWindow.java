@@ -6,8 +6,11 @@ import java.awt.Point;
 import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -36,7 +39,7 @@ import net.java.games.input.ControllerEnvironment;
 import net.java.games.input.Event;
 import net.java.games.input.EventQueue;
 
-public class MapWindow implements WindowListener, ActionListener {
+public class MapWindow implements WindowListener, ActionListener, MouseListener {
 	static JDialog dialog;
 	static JLabel imgLabel;
 	static BufferedImage img;
@@ -49,8 +52,6 @@ public class MapWindow implements WindowListener, ActionListener {
 	static JFileChooser openDialog;
 	static JPanel buttonsPanel;
 	static ArrayList<Shape> mapShapes = new ArrayList<Shape>();
-	static FileNameExtensionFilter filterScript = new FileNameExtensionFilter("Autonomous Designer Script", "atds");
-	static FileNameExtensionFilter filterMap = new FileNameExtensionFilter("Autonomous Designer Map", "atdm");
 	static double robotAngle = 0;
 	static Point.Double robotPos = new Point.Double(100, 100);
 	static FakeBot robot = new FakeBot(robotPos, robotAngle, 30, 20);
@@ -59,7 +60,6 @@ public class MapWindow implements WindowListener, ActionListener {
 		LOAD_MAP("Load Map", buttonsPanel) {
 			@Override
 			public void onClick() {
-				openDialog.setFileFilter(filterMap);
 				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					System.out.println(openDialog.getSelectedFile().getPath());
@@ -71,7 +71,6 @@ public class MapWindow implements WindowListener, ActionListener {
 		LOAD_INSTRUCTIONS("Load Instruction", buttonsPanel) {
 			@Override
 			public void onClick() {
-				openDialog.setFileFilter(filterScript);
 				int returnVal = openDialog.showOpenDialog(dialog);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					try {
@@ -88,7 +87,6 @@ public class MapWindow implements WindowListener, ActionListener {
 		SAVE_INSTRUCTIONS("Save Instruction", buttonsPanel) {
 			@Override
 			public void onClick() {
-				openDialog.setFileFilter(filterScript);
 				int retrival = openDialog.showSaveDialog(dialog);
 				if (retrival == JFileChooser.APPROVE_OPTION) {
 					try {
@@ -100,11 +98,31 @@ public class MapWindow implements WindowListener, ActionListener {
 				}
 			}
 		},
-		PLAYBACK_INSTRUCTIONS("Play", instructionButtonsPanel) {
+		PLAYBACK_INSTRUCTIONS("Plot", instructionButtonsPanel) {
 			@Override
 			public void onClick() {
 				MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
-				MapDrawer.drawRobot(g2d, robot, Color.magenta, 1);
+				ArrayList<Shape> shapes = new ArrayList();
+				Scanner in = new Scanner(instructionText.getText());
+				while(in.hasNext()){
+					ArrayList<Point.Double> pointslist = new ArrayList<Point.Double>();
+					String line = in.nextLine();
+					String[] points = line.split(" ");
+					for(String str:points){
+						String[] xy = str.split(",");
+						Point.Double point = new Point.Double(Double.valueOf(xy[0]),Double.valueOf(xy[1]));
+						pointslist.add(point);
+					}
+					Path2D.Double path = new Path2D.Double();
+					path.moveTo(pointslist.get(0).getX(),pointslist.get(0).getY());
+					for(int i=1;i<pointslist.size();i++){
+						path.lineTo(pointslist.get(i).getX(),pointslist.get(i).getY());
+					}
+					//path.closePath();
+					shapes.add(path);
+				}
+				in.close();
+				MapDrawer.drawObjects(g2d, shapes, Color.magenta,new Color(1f,0f,0f,.5f ), 1);
 				
 			}
 		},
@@ -141,6 +159,7 @@ public class MapWindow implements WindowListener, ActionListener {
 		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);// image drawn to for map
 		g2d = img.createGraphics();// graphics interface for map
 		imgLabel = new JLabel(new ImageIcon(img));// contains map, used to more easily get mouse coordinates
+		
 		// setup instruction edit area
 		instructionPanel = new JPanel();
 		instructionPanel.setLayout(new BoxLayout(instructionPanel, BoxLayout.Y_AXIS));
@@ -164,6 +183,7 @@ public class MapWindow implements WindowListener, ActionListener {
 			button.setActionCommand(b.toString());
 			b.panel.add(button);
 		}
+		imgLabel.addMouseListener(mapWindow);
 
 		// add elements to window and finalize setup
 		dialog.add(imgLabel, BorderLayout.CENTER);
@@ -302,5 +322,34 @@ public class MapWindow implements WindowListener, ActionListener {
 		} catch (java.lang.IllegalArgumentException e) {
 
 		}
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		System.out.printf("%s , %s\n",e.getX(),e.getY());
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 }
