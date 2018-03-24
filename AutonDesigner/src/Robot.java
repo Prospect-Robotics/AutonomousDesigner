@@ -1,11 +1,11 @@
 import java.awt.Point;
 
-public class FakeBot {
+public class Robot {
 	static Point.Double position;
 	static double angle;
 	static double length;
 	static double width;
-	public FakeBot(Point.Double startPos,double startAngle,double length,double width){
+	public Robot(Point.Double startPos,double startAngle,double length,double width){
 		this.position = startPos;
 		this.angle = startAngle;
 		this.length = length;

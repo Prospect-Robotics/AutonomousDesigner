@@ -12,9 +12,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
-import java.awt.geom.QuadCurve2D;
+import java.awt.geom.PathIterator;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -35,7 +37,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.BadLocationException;
 
 public class MapWindow implements WindowListener, ActionListener, MouseListener, KeyListener {
 	static JDialog dialog;
@@ -52,7 +53,14 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 	static ArrayList<Shape> mapShapes = new ArrayList<Shape>();
 	static double robotAngle = 0;
 	static Point.Double robotPos = new Point.Double(100, 100);
-	static FakeBot robot = new FakeBot(robotPos, robotAngle, 30, 20);
+	static ArrayList<Shape> currentPath = new ArrayList<Shape>();
+	// ui colors
+	static Color background = new Color(0xffffff);
+	static Color mapLines = new Color(0x000000);
+	static Color pathLines = new Color(0xff0000);
+	//robot info
+	static double length = 34;
+	static double width = 40;
 
 	private enum Buttons {
 		LOAD_MAP("Load Map", buttonsPanel) {
@@ -62,7 +70,7 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					System.out.println(openDialog.getSelectedFile().getPath());
 					mapShapes = MapReader.fromfile(openDialog.getSelectedFile());
-					MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
+					MapDrawer.drawObjects(g2d, mapShapes, mapLines, background, 1);
 				}
 			}
 		},
@@ -88,7 +96,7 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 				int retrival = openDialog.showSaveDialog(dialog);
 				if (retrival == JFileChooser.APPROVE_OPTION) {
 					try {
-						FileWriter fw = new FileWriter(openDialog.getSelectedFile() + ".atdm");
+						FileWriter fw = new FileWriter(openDialog.getSelectedFile());
 						instructionText.write(fw);
 					} catch (Exception ex) {
 						ex.printStackTrace();
@@ -99,8 +107,8 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 		PLOT_LINES("Plot Lines", instructionButtonsPanel) {
 			@Override
 			public void onClick() {
-				MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
-				ArrayList<Shape> shapes = new ArrayList();
+				MapDrawer.drawObjects(g2d, mapShapes, mapLines, background, 1);
+				ArrayList<Shape> shapes = new ArrayList<Shape>();
 				Scanner in = new Scanner(instructionText.getText());
 				while (in.hasNext()) {
 					ArrayList<Point.Double> pointslist = new ArrayList<Point.Double>();
@@ -120,20 +128,39 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 					shapes.add(path);
 				}
 				in.close();
-				MapDrawer.drawObjects(g2d, shapes, Color.magenta, new Color(1f, 0f, 0f, .5f), 1);
+				currentPath.clear();
+				for (Shape s : shapes) {
+					currentPath.add(s);
+				}
+				MapDrawer.drawObjects(g2d, shapes, pathLines, new Color(1f, 0f, 0f, .5f), 2);
 
+			}
+		},
+		TRACE_PATH("Trace", instructionButtonsPanel) {
+			@Override
+			public void onClick() {
+				for (Shape s : currentPath) {
+					//((Path2D.Double) s).
+					//Robot r = new Robot(path., startAngle, length, width);
+				}
+			}
+		},
+		SAVE_IMAGE("Export Image", instructionButtonsPanel) {
+			@Override
+			public void onClick() {
+				
 			}
 		},
 		CLEAR("Clear", instructionButtonsPanel) {
 
 			@Override
 			public void onClick() {
-				g2d.setBackground(Color.black);
-				g2d.clearRect(0, 0, img.getWidth(),img.getHeight());
-				MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
+				g2d.setBackground(background);
+				g2d.clearRect(0, 0, img.getWidth(), img.getHeight());
+				MapDrawer.drawObjects(g2d, mapShapes, mapLines, background, 1);
 				dialog.repaint();
 			}
-			
+
 		};
 		private String label;
 		private JPanel panel;
@@ -193,45 +220,17 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 		dialog.addWindowListener(mapWindow);
 		dialog.addKeyListener(mapWindow);
 		dialog.setVisible(true);
-		g2d.setBackground(Color.black);
+		g2d.setBackground(background);
 		g2d.clearRect(0, 0, img.getWidth(), img.getHeight());
 		// File open/save dialog
 		openDialog = new JFileChooser();
 		FileNameExtensionFilter fileTypeFilter = new FileNameExtensionFilter("text files", "txt");
 		openDialog.setFileFilter(fileTypeFilter);
 		openDialog.setPreferredSize(new Dimension(600, 500));
-	}
 
-	public void playInstructions() {
-		Supplier<Exception> noDefaultSpeed = () -> new Exception("You forgot to set the default speed!");
-		try (Scanner instructionsFeed = new Scanner(instructionText.getText())) {
-			OptionalDouble defaultSpeed = OptionalDouble.empty();
-			while (instructionsFeed.hasNext()) {
-				String command = instructionsFeed.next().toLowerCase();
-				switch (command) {
-				case "drive":
-					double distance = instructionsFeed.nextDouble();
-					double speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble()
-							: defaultSpeed.orElseThrow(noDefaultSpeed);
-					break;
-				case "rotate":
-					double degrees = instructionsFeed.nextDouble();
-					speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble()
-							: defaultSpeed.orElseThrow(noDefaultSpeed);
-					break;
-				case "cdrive":
-					degrees = instructionsFeed.nextDouble();
-					// double turnRadiusAsWheelSpeedRatio =
-					break;
-				case "cfg":
-					break;
-				}
-
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		// load default map
+		mapShapes = MapReader.fromfile(new File("map.txt"));
+		MapDrawer.drawObjects(g2d, mapShapes, mapLines, background, 1);
 	}
 
 	@Override
@@ -280,7 +279,7 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener,
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		System.out.printf("%s , %s\n", e.getX(), e.getY());
+		System.out.printf("%s,%s\n", e.getX(), e.getY());
 		if (e.isShiftDown()) {
 			instructionText.append(String.format("%s,%s ", e.getX(), e.getY()));
 		}

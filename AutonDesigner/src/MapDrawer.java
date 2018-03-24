@@ -12,12 +12,13 @@ public class MapDrawer {
 		BasicStroke stroke = new BasicStroke(lineWidth);
 		g2d.setColor(lineColor);
 		for (Shape s : objects) {
+			g2d.setStroke(stroke);
 			g2d.draw(s);
 		}
 		MapWindow.dialog.repaint();
 	}
 
-	public static void drawRobot(Graphics2D g2d, FakeBot robo, Color lineColor, int lineWidth) {
+	public static void drawRobot(Graphics2D g2d, Robot robo, Color lineColor, int lineWidth) {
 		Point.Double center = robo.position;
 		double w = robo.width;
 		double l = robo.length;
