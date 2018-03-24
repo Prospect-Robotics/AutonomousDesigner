@@ -6,11 +6,14 @@ import java.awt.Point;
 import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.geom.Path2D;
+import java.awt.geom.QuadCurve2D;
 import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -32,14 +35,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.text.BadLocationException;
 
-import net.java.games.input.Component;
-import net.java.games.input.Controller;
-import net.java.games.input.ControllerEnvironment;
-import net.java.games.input.Event;
-import net.java.games.input.EventQueue;
-
-public class MapWindow implements WindowListener, ActionListener, MouseListener {
+public class MapWindow implements WindowListener, ActionListener, MouseListener, KeyListener {
 	static JDialog dialog;
 	static JLabel imgLabel;
 	static BufferedImage img;
@@ -98,41 +96,44 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 				}
 			}
 		},
-		PLAYBACK_INSTRUCTIONS("Plot", instructionButtonsPanel) {
+		PLOT_LINES("Plot Lines", instructionButtonsPanel) {
 			@Override
 			public void onClick() {
 				MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
 				ArrayList<Shape> shapes = new ArrayList();
 				Scanner in = new Scanner(instructionText.getText());
-				while(in.hasNext()){
+				while (in.hasNext()) {
 					ArrayList<Point.Double> pointslist = new ArrayList<Point.Double>();
 					String line = in.nextLine();
 					String[] points = line.split(" ");
-					for(String str:points){
+					for (String str : points) {
 						String[] xy = str.split(",");
-						Point.Double point = new Point.Double(Double.valueOf(xy[0]),Double.valueOf(xy[1]));
+						Point.Double point = new Point.Double(Double.valueOf(xy[0]), Double.valueOf(xy[1]));
 						pointslist.add(point);
 					}
 					Path2D.Double path = new Path2D.Double();
-					path.moveTo(pointslist.get(0).getX(),pointslist.get(0).getY());
-					for(int i=1;i<pointslist.size();i++){
-						path.lineTo(pointslist.get(i).getX(),pointslist.get(i).getY());
+					path.moveTo(pointslist.get(0).getX(), pointslist.get(0).getY());
+					for (int i = 1; i < pointslist.size(); i++) {
+						path.lineTo(pointslist.get(i).getX(), pointslist.get(i).getY());
 					}
-					//path.closePath();
+					// path.closePath();
 					shapes.add(path);
 				}
 				in.close();
-				MapDrawer.drawObjects(g2d, shapes, Color.magenta,new Color(1f,0f,0f,.5f ), 1);
-				
+				MapDrawer.drawObjects(g2d, shapes, Color.magenta, new Color(1f, 0f, 0f, .5f), 1);
+
 			}
 		},
-		OPEN_KEYMAPPER("Open Controlls Mapper", buttonsPanel) {
+		CLEAR("Clear", instructionButtonsPanel) {
 
 			@Override
 			public void onClick() {
-				ControlsMapper.showUI();
+				g2d.setBackground(Color.black);
+				g2d.clearRect(0, 0, img.getWidth(),img.getHeight());
+				MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
+				dialog.repaint();
 			}
-
+			
 		};
 		private String label;
 		private JPanel panel;
@@ -147,7 +148,6 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 
 	public static void showUI() {
 		MapWindow mapWindow = new MapWindow();
-		System.out.println("There will be a few errors from jinput but just ignore them because it still works");
 		int width = 888;
 		int height = 360;
 		// setup main window and layout
@@ -159,7 +159,7 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);// image drawn to for map
 		g2d = img.createGraphics();// graphics interface for map
 		imgLabel = new JLabel(new ImageIcon(img));// contains map, used to more easily get mouse coordinates
-		
+
 		// setup instruction edit area
 		instructionPanel = new JPanel();
 		instructionPanel.setLayout(new BoxLayout(instructionPanel, BoxLayout.Y_AXIS));
@@ -191,65 +191,18 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 		dialog.add(buttonsPanel, BorderLayout.PAGE_END);
 		dialog.pack();
 		dialog.addWindowListener(mapWindow);
+		dialog.addKeyListener(mapWindow);
 		dialog.setVisible(true);
-		g2d.setPaint(Color.black);
-		g2d.fillRect(0, 0, img.getWidth(), img.getHeight());
+		g2d.setBackground(Color.black);
+		g2d.clearRect(0, 0, img.getWidth(), img.getHeight());
 		// File open/save dialog
 		openDialog = new JFileChooser();
 		FileNameExtensionFilter fileTypeFilter = new FileNameExtensionFilter("text files", "txt");
 		openDialog.setFileFilter(fileTypeFilter);
 		openDialog.setPreferredSize(new Dimension(600, 500));
-		// File mapFile;
-		// int returnVal = fileChooser.showOpenDialog(mapFile);
-		// Setup Joysticks
-		ControllerEnvironment ce = ControllerEnvironment.getDefaultEnvironment();
-		Controller joystick = null;
-		System.out.println(ce.getControllers().length + " devices found");
-		for (int i = 0; i < ce.getControllers().length; i++) {
-			System.out.println(ce.getControllers()[i].getType().toString());
-			System.out.println("-" + ce.getControllers()[i].getName());
-			if (ce.getControllers()[i].getType().toString() == "Stick") {
-				joystick = ce.getControllers()[i];
-				System.out.println("Found Joystick");
-				for (Component c : joystick.getComponents()) {
-					System.out.println(" " + c);
-					System.out.println(c.getIdentifier());
-				}
-			}
-		}
-		//
-		while (joystick != null) {
-			if (joystick != null) {
-				joystick.poll();
-				EventQueue queue = joystick.getEventQueue();
-				Event event = new Event();
-				while (queue.getNextEvent(event)) {
-					switch (event.getComponent().getName()) {
-					default:
-						System.out.println(event.getComponent().getName());
-						System.out.println(event.getComponent().getPollData());
-						break;
-					case ("X Axis"):
-						break;
-					case ("Y Axis"):
-						break;
-					case ("Z Rotation"):
-						robotAngle += event.getValue();
-						System.out.println(robotAngle);
-						MapDrawer.drawObjects(g2d, mapShapes, Color.GREEN, Color.BLACK, 1);
-						break;
-					}
-
-				}
-			}
-			try {
-				Thread.sleep(20);
-			} catch (InterruptedException e) {
-			}
-		}
 	}
-	
-	public void playInstructions(){
+
+	public void playInstructions() {
 		Supplier<Exception> noDefaultSpeed = () -> new Exception("You forgot to set the default speed!");
 		try (Scanner instructionsFeed = new Scanner(instructionText.getText())) {
 			OptionalDouble defaultSpeed = OptionalDouble.empty();
@@ -258,11 +211,13 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 				switch (command) {
 				case "drive":
 					double distance = instructionsFeed.nextDouble();
-					double speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble() : defaultSpeed.orElseThrow(noDefaultSpeed);
+					double speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble()
+							: defaultSpeed.orElseThrow(noDefaultSpeed);
 					break;
 				case "rotate":
 					double degrees = instructionsFeed.nextDouble();
-					speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble() : defaultSpeed.orElseThrow(noDefaultSpeed);
+					speed = instructionsFeed.hasNextDouble() ? instructionsFeed.nextDouble()
+							: defaultSpeed.orElseThrow(noDefaultSpeed);
 					break;
 				case "cdrive":
 					degrees = instructionsFeed.nextDouble();
@@ -278,7 +233,6 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 			e.printStackTrace();
 		}
 	}
-	
 
 	@Override
 	public void windowActivated(WindowEvent arg0) {
@@ -326,30 +280,66 @@ public class MapWindow implements WindowListener, ActionListener, MouseListener 
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		System.out.printf("%s , %s\n",e.getX(),e.getY());
+		System.out.printf("%s , %s\n", e.getX(), e.getY());
+		if (e.isShiftDown()) {
+			instructionText.append(String.format("%s,%s ", e.getX(), e.getY()));
+		}
 	}
 
 	@Override
 	public void mousePressed(MouseEvent e) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void mouseEntered(MouseEvent e) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void mouseExited(MouseEvent e) {
 		// TODO Auto-generated method stub
-		
+
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
+	 */
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
+	 */
+	@Override
+	public void keyPressed(KeyEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
+	 */
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+
 	}
 }
